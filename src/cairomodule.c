@@ -107,6 +107,7 @@ static Pycairo_CAPI_t CAPI = {
   &PycairoGradient_Type,
   &PycairoLinearGradient_Type,
   &PycairoRadialGradient_Type,
+  &PycairoMeshGradient_Type,
   PycairoPattern_FromPattern,
 
   &PycairoScaledFont_Type,
@@ -211,6 +212,8 @@ init_cairo(void)
     return;
   if (PyType_Ready(&PycairoRadialGradient_Type) < 0)
     return;
+  if (PyType_Ready(&PycairoMeshGradient_Type) < 0)
+    return;
 
   if (PyType_Ready(&PycairoScaledFont_Type) < 0)
     return;
@@ -292,6 +295,9 @@ init_cairo(void)
   Py_INCREF(&PycairoRadialGradient_Type);
   PyModule_AddObject(m, "RadialGradient",
 		     (PyObject *)&PycairoRadialGradient_Type);
+  Py_INCREF(&PycairoMeshGradient_Type);
+  PyModule_AddObject(m, "MeshGradient",
+		     (PyObject *)&PycairoMeshGradient_Type);
 
   Py_INCREF(&PycairoScaledFont_Type);
   PyModule_AddObject(m, "ScaledFont", (PyObject *)&PycairoScaledFont_Type);

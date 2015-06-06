@@ -8,7 +8,7 @@ m4_define(pycairo_version_micro, 1)
 m4_define(pycairo_version, pycairo_version_major.pycairo_version_minor.pycairo_version_micro)
 
 # versions of packages we require
-m4_define(cairo_required_version, 1.10.0)
+m4_define(cairo_required_version, 1.12.0)
 m4_define(xpyb_required_version, 1.3)
 
 AC_INIT([py2cairo],
