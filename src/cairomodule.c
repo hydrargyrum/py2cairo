@@ -156,6 +156,11 @@ static Pycairo_CAPI_t CAPI = {
 #else
   0,
 #endif
+#ifdef CAIRO_HAS_SCRIPT_SURFACE
+  &PycairoScriptSurface_Type,
+#else
+  0,
+#endif
   PycairoSurface_FromSurface,
 
   Pycairo_Check_Status,
@@ -252,6 +257,10 @@ init_cairo(void)
 #endif
 #ifdef CAIRO_HAS_XLIB_SURFACE
   if (PyType_Ready(&PycairoXlibSurface_Type) < 0)
+    return;
+#endif
+#ifdef CAIRO_HAS_SCRIPT_SURFACE
+  if (PyType_Ready(&PycairoScriptSurface_Type) < 0)
     return;
 #endif
 
@@ -353,6 +362,12 @@ init_cairo(void)
 		     (PyObject *)&PycairoXlibSurface_Type);
 #endif
 
+#ifdef CAIRO_HAS_SCRIPT_SURFACE
+  Py_INCREF(&PycairoScriptSurface_Type);
+  PyModule_AddObject(m, "ScriptSurface",
+		     (PyObject *)&PycairoScriptSurface_Type);
+#endif
+
   PyModule_AddObject(m, "CAPI", PyCObject_FromVoidPtr(&CAPI, NULL));
 
   /* Add 'cairo.Error' to the module */
@@ -440,6 +455,11 @@ init_cairo(void)
   PyModule_AddIntConstant(m, "HAS_XLIB_SURFACE", 1);
 #else
   PyModule_AddIntConstant(m, "HAS_XLIB_SURFACE", 0);
+#endif
+#if CAIRO_HAS_SCRIPT_SURFACE
+  PyModule_AddIntConstant(m, "HAS_SCRIPT_SURFACE", 1);
+#else
+  PyModule_AddIntConstant(m, "HAS_SCRIPT_SURFACE", 0);
 #endif
 
 #define CONSTANT(x) PyModule_AddIntConstant(m, #x, CAIRO_##x)

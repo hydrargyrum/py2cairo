@@ -114,6 +114,10 @@ extern PyObject *xpybVISUALTYPE_type;
 extern PyTypeObject PycairoXlibSurface_Type;
 #endif
 
+#if CAIRO_HAS_SCRIPT_SURFACE
+extern PyTypeObject PycairoScriptSurface_Type;
+#endif
+
 PyObject *PycairoSurface_FromSurface (cairo_surface_t *surface,
                                       PyObject *base);
 

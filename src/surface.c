@@ -47,8 +47,9 @@
  *   PycairoSVGSurface,
  *   PycairoWin32Surface,
  *   PycairoWin32PrintingSurface,
- *   PycairoXCBSurface, or
- *   PycairoXlibSurface
+ *   PycairoXCBSurface,
+ *   PycairoXlibSurface, or
+ *   PycairoScriptSurface
  * from a cairo_surface_t.
  * surface - a cairo_surface_t to 'wrap' into a Python object.
  *   It is unreferenced if the PycairoSurface creation fails, or if the
@@ -111,6 +112,11 @@ PycairoSurface_FromSurface (cairo_surface_t *surface, PyObject *base) {
 #if CAIRO_HAS_XLIB_SURFACE
   case CAIRO_SURFACE_TYPE_XLIB:
     type = &PycairoXlibSurface_Type;
+    break;
+#endif
+#if CAIRO_HAS_SCRIPT_SURFACE
+  case CAIRO_SURFACE_TYPE_SCRIPT:
+    type = &PycairoScriptSurface_Type;
     break;
 #endif
   default:
@@ -1579,3 +1585,123 @@ PyTypeObject PycairoXlibSurface_Type = {
   0,                                  /* tp_bases */
 };
 #endif  /* CAIRO_HAS_XLIB_SURFACE */
+
+/* Class ScriptSurface(Surface) ------------------------------------------- */
+#ifdef CAIRO_HAS_SCRIPT_SURFACE
+#include <cairo-script.h>
+
+static PyObject *
+script_surface_new (PyTypeObject *type, PyObject *args, PyObject *kwds) {
+  double width_in_points, height_in_points;
+  cairo_format_t format;
+  const char *file;
+  cairo_device_t *dev;
+  cairo_surface_t *surface;
+  PyObject *target_obj;
+  PycairoScriptSurface *target = NULL;
+
+  if (!PyArg_ParseTuple(args, "sO:ScriptSurface.__new__",
+                        &file, &target_obj)) {
+    PyErr_Clear();
+
+    if (!PyArg_ParseTuple(args, "sidd:ScriptSurface.__new__",
+                          &file, &format, &width_in_points,
+                          &height_in_points))
+      return NULL;
+  } else {
+    if (PyObject_TypeCheck(target_obj, &PycairoSurface_Type)) {
+      target = (PycairoScriptSurface *)target_obj;
+    } else {
+      PyErr_SetString(PyExc_TypeError, "expected a Surface as argument 2");
+      return NULL;
+    }
+  }
+  
+  dev = cairo_script_create (file);
+  if (Pycairo_Check_Status (cairo_device_status (dev))) {
+    cairo_device_destroy (dev);
+    return NULL;
+  }
+
+  if (target) {
+    surface = cairo_script_surface_create_for_target (dev, target->surface);
+  } else {
+    surface = cairo_script_surface_create (dev, format, width_in_points,
+                                           height_in_points);
+  }
+
+  if (Pycairo_Check_Status (cairo_surface_status (surface))) {
+    cairo_surface_destroy (surface);
+    cairo_device_destroy (dev);
+    return NULL;
+  }
+
+  return PycairoSurface_FromSurface (surface, NULL);
+}
+
+static PyObject *
+script_surface_write_comment (PycairoScriptSurface *o, PyObject *args) {
+  char *comment;
+  Py_ssize_t len;
+  cairo_device_t *dev;
+
+  if (!PyArg_ParseTuple(args, "s#:ScriptSurface.write_comment", &comment,
+                        &len))
+    return NULL;
+
+  dev = cairo_surface_get_device (o->surface);
+  cairo_script_write_comment (dev, comment, len);
+
+  Py_RETURN_NONE;
+}
+
+static PyMethodDef script_surface_methods[] = {
+  {"write_comment", (PyCFunction)script_surface_write_comment, METH_VARARGS },
+  {NULL, NULL, 0, NULL},
+};
+
+PyTypeObject PycairoScriptSurface_Type = {
+  PyObject_HEAD_INIT(NULL)
+  0,                                  /* ob_size */
+  "cairo.ScriptSurface",              /* tp_name */
+  sizeof(PycairoScriptSurface),       /* tp_basicsize */
+  0,                                  /* tp_itemsize */
+  0,                                  /* tp_dealloc */
+  0,                                  /* tp_print */
+  0,                                  /* tp_getattr */
+  0,                                  /* tp_setattr */
+  0,                                  /* tp_compare */
+  0,                                  /* tp_repr */
+  0,                                  /* tp_as_number */
+  0,                                  /* tp_as_sequence */
+  0,                                  /* tp_as_mapping */
+  0,                                  /* tp_hash */
+  0,                                  /* tp_call */
+  0,                                  /* tp_str */
+  0,                                  /* tp_getattro */
+  0,                                  /* tp_setattro */
+  0,                                  /* tp_as_buffer */
+  Py_TPFLAGS_DEFAULT,                 /* tp_flags */
+  0,                                  /* tp_doc */
+  0,                                  /* tp_traverse */
+  0,                                  /* tp_clear */
+  0,                                  /* tp_richcompare */
+  0,                                  /* tp_weaklistoffset */
+  0,                                  /* tp_iter */
+  0,                                  /* tp_iternext */
+  script_surface_methods,             /* tp_methods */
+  0,                                  /* tp_members */
+  0,                                  /* tp_getset */
+  &PycairoSurface_Type,               /* tp_base */
+  0,                                  /* tp_dict */
+  0,                                  /* tp_descr_get */
+  0,                                  /* tp_descr_set */
+  0,                                  /* tp_dictoffset */
+  0,                                  /* tp_init */
+  0,                                  /* tp_alloc */
+  (newfunc)script_surface_new,        /* tp_new */
+  0,                                  /* tp_free */
+  0,                                  /* tp_is_gc */
+  0,                                  /* tp_bases */
+};
+#endif  /* CAIRO_HAS_SCRIPT_SURFACE */
